@@ -19,7 +19,13 @@
       "fs": {
         "readDir": true,
         "readFile": true,
-        "scope": ["$AUDIO/**", "$HOME/**", "$DOWNLOAD/**", "**"]
+        "readBinaryFile": true,
+        "writeFile": true,
+        "createDir": true,
+        "scope": ["$APPCONFIG/**", "$AUDIO/**", "$HOME/**", "$DOWNLOAD/**", "**"]
+      },
+      "path": {
+        "all": true
       },
       "protocol": {
         "asset": true,

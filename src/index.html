@@ -59,7 +59,7 @@
             <div class="settings-sublabel">Fetch from lrclib.net when .lrc not found</div>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="autoLyrics" checked>
+            <input type="checkbox" id="autoLyrics" checked onchange="saveConfig()">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -69,7 +69,7 @@
             <div class="settings-sublabel">Fade out non-active lyrics lines</div>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="blurLyrics" checked>
+            <input type="checkbox" id="blurLyrics" checked onchange="saveConfig()">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -82,7 +82,7 @@
             <div class="settings-sublabel">Smooth transition between tracks</div>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="crossfade">
+            <input type="checkbox" id="crossfade" onchange="saveConfig()">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -90,7 +90,7 @@
           <div>
             <div class="settings-label">Equalizer preset</div>
           </div>
-          <select class="settings-select" id="eqPreset">
+          <select class="settings-select" id="eqPreset" onchange="saveConfig()">
             <option value="flat">Flat</option>
             <option value="bass">Bass Boost</option>
             <option value="vocal">Vocal</option>

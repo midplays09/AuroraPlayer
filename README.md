@@ -1,45 +1,44 @@
 # Aurora 🎵
 
-A sleek, premium local music player built with Tauri. Clean dark UI, spinning vinyl album art, live synced lyrics, Last.fm scrobbling, and no subscription required — just point it at a folder and go.
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+A sleek, premium local music player built with Tauri. Clean dark UI, spinning vinyl album art, live synced lyrics, Last.fm scrobbling — just point it at a folder and go.
 
 ---
 
 ## Features
 
-- **Spinning vinyl album art** — the album cover rotates while music plays, pauses when you pause
-- **Live synced lyrics** — line-by-line lyrics that scroll in real time, sourced from local `.lrc` files or fetched automatically from [lrclib.net](https://lrclib.net)
-- **Dynamic ambient color** — the UI accent color shifts to match the current album art
-- **Last.fm scrobbling** — tracks what you listen to and sends it to your Last.fm profile
-- **ID3 tag reading** — automatically reads artist, album, and cover art from your audio files
+- **Spinning vinyl album art** — rotates while playing, pauses when you pause
+- **Live synced lyrics** — real-time line-by-line scrolling from local `.lrc` files or auto-fetched from NetEase, Musixmatch, or lrclib
+- **Dynamic ambient color** — UI accent shifts to match the current album art
+- **Last.fm scrobbling** — logs everything you listen to on your Last.fm profile
+- **ID3 tag reading** — reads artist, album, and cover art from your audio files automatically
 - **Songs / Albums / Artists views** — three ways to browse your library
 - **Queue, shuffle, repeat** — full playback controls
-- **macOS-style window controls** — red/yellow/green traffic light buttons for close, minimize, maximize
+- **Persistent config** — your folder, volume, settings and Last.fm session are saved to `config.json` and restored on next launch
+- **macOS-style window controls** — traffic light buttons for close, minimize, maximize
 - **Keyboard shortcuts** — control playback without touching the mouse
-- **Accent color picker** — five color options in settings to personalize the UI
 
 ---
 
 ## Prerequisites
-
-You need these installed before you can run or build Aurora.
 
 ### 1. Rust
 ```bash
 # macOS / Linux
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Windows
-# Download and run rustup-init.exe from https://rustup.rs
+# Windows — download rustup-init.exe from https://rustup.rs
 ```
 
-### 2. Node.js (v16 or newer)
-Download from [nodejs.org](https://nodejs.org). The LTS version is recommended.
+### 2. Node.js (v16+)
+Download from [nodejs.org](https://nodejs.org). LTS recommended.
 
 ### 3. Platform dependencies
 
 **Windows**
-- [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — select "Desktop development with C++"
-- [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — usually already installed on Windows 11
+- [Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — select "Desktop development with C++"
+- [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — pre-installed on Windows 11
 
 **macOS**
 ```bash
@@ -57,23 +56,44 @@ sudo apt install libwebkit2gtk-4.0-dev build-essential curl wget \
 ## Getting Started
 
 ```bash
-# 1. Install dependencies
+git clone https://github.com/midplays09/AuroraPlayer.git
+cd AuroraPlayer
 npm install
-
-# 2. Run in development mode (opens the app with hot reload)
-npm run tauri dev
-
-# 3. Build a production installer
-npm run tauri build
+npm run tauri dev       # dev mode with hot reload
+npm run tauri build     # production build
 ```
 
-The built installer will be in `src-tauri/target/release/bundle/`.
+Built installer lands in `src-tauri/target/release/bundle/`.
 
 ---
 
-## Loading Your Music
+## Config File
 
-Click **Open Folder** in the top right, or go to **Settings → Library → Browse** and select the folder where your music files live. Aurora will scan it and load everything it finds.
+Aurora saves all your settings automatically to a `config.json` file:
+
+| Platform | Location |
+|---|---|
+| Windows | `%APPDATA%\aurora\config.json` |
+| macOS | `~/Library/Application Support/aurora/config.json` |
+| Linux | `~/.config/aurora/config.json` |
+
+The following are persisted automatically — no manual saving needed:
+
+- Last opened music folder (auto-reloaded on next launch)
+- Volume level
+- Shuffle and repeat state
+- Lyrics panel open/closed
+- Accent color
+- All settings toggles (auto-fetch lyrics, blur lines, crossfade, EQ preset)
+- Last.fm session (so you stay logged in)
+
+To reset everything to defaults, just delete the `config.json` file.
+
+---
+
+## Loading Music
+
+Click **Open Folder** or go to **Settings → Library → Browse**. Aurora scans the folder and loads all audio files it finds. The folder path is saved and reloaded automatically next time you open the app.
 
 Supported formats: `MP3` `FLAC` `OGG` `WAV` `M4A` `AAC` `OPUS` `WMA`
 
@@ -81,97 +101,88 @@ Supported formats: `MP3` `FLAC` `OGG` `WAV` `M4A` `AAC` `OPUS` `WMA`
 
 ## Lyrics
 
-Aurora looks for lyrics in two places, in this order:
+Aurora checks sources in this order:
 
-### 1. Local `.lrc` file (synced, best quality)
-
-Put a `.lrc` file in the same folder as your audio file with the exact same name:
-
+### 1. Local `.lrc` file (best)
+Place a `.lrc` next to your audio file with the same name:
 ```
 Music/
 ├── Billie Jean.mp3
-└── Billie Jean.lrc   ← Aurora picks this up automatically
+└── Billie Jean.lrc   ← picked up automatically
 ```
 
-Synced `.lrc` files have timestamps on each line so lyrics scroll in real time. You can find `.lrc` files for most songs on [lrclib.net](https://lrclib.net) or [syair.info](https://syair.info).
+### 2. Auto-fetch (parallel race)
+If no local file is found, Aurora fires requests to **three sources simultaneously** and uses whichever responds first:
 
-### 2. Auto-fetch from lrclib.net
+| Source | Coverage |
+|---|---|
+| **NetEase** | Huge catalog, very fast, great for pop/mainstream |
+| **Musixmatch** | Same database as Spotify, best overall coverage |
+| **lrclib** | Open/crowdsourced fallback |
 
-If no `.lrc` file is found, Aurora automatically searches [lrclib.net](https://lrclib.net) using the track's artist and title (read from ID3 tags). This requires an internet connection. Synced lyrics are preferred; plain lyrics are used as a fallback.
-
-You can turn auto-fetch off in **Settings → Lyrics**.
+The source label in the lyrics panel shows you which one won. You can turn auto-fetch off in **Settings → Lyrics**.
 
 ---
 
 ## Last.fm Scrobbling
 
-Aurora can log every track you listen to on [Last.fm](https://www.last.fm).
+1. Create a free API app at [last.fm/api/account/create](https://www.last.fm/api/account/create)
+2. Open **Settings → Last.fm** in Aurora
+3. Paste your **API Key** and **API Secret** → click **Save Credentials**
+4. Enter your Last.fm username and password → click **Connect**
 
-### Setup
+A `✓ Scrobbled` badge appears in the player bar when a track is submitted. Your session is saved in `config.json` so you stay connected between launches.
 
-1. Go to [last.fm/api/account/create](https://www.last.fm/api/account/create) and create a free API application — name it anything you like
-2. Copy your **API Key** and **API Secret**
-3. Open **Settings → Last.fm** in Aurora
-4. Paste in your API Key and Secret, then click **Save Credentials**
-5. Enter your Last.fm username and password and click **Connect to Last.fm**
-
-A `✓ Scrobbled` badge will appear in the player bar each time a track is submitted.
-
-### How scrobbling works
-
-- **Now Playing** is sent as soon as a track starts
-- A **scrobble** is submitted once you've listened to 50% of the track, or 4 minutes — whichever comes first (this follows Last.fm's official rules)
-- Tracks under 30 seconds are never scrobbled
-- If a scrobble fails (e.g. no internet), it's queued and retried automatically
+**Scrobble rules (per Last.fm spec):**
+- Submitted after 50% of the track, or 4 minutes — whichever comes first
+- Tracks under 30 seconds are skipped
+- Failed scrobbles are queued and retried automatically
 
 ---
 
 ## Keyboard Shortcuts
 
 | Key | Action |
-|-----|--------|
+|---|---|
 | `Space` | Play / Pause |
-| `⌘ →` / `Ctrl →` | Next track |
-| `⌘ ←` / `Ctrl ←` | Previous track |
-| `↑` | Volume up |
-| `↓` | Volume down |
+| `⌘/Ctrl + →` | Next track |
+| `⌘/Ctrl + ←` | Previous track |
+| `↑` / `↓` | Volume up / down |
 | `L` | Toggle lyrics panel |
 | `S` | Toggle shuffle |
 
 ---
 
-## Settings
-
-Open settings with the gear icon in the top right corner.
+## Settings Reference
 
 | Setting | What it does |
 |---|---|
-| Music Folder | The folder Aurora loads tracks from |
-| Auto-fetch lyrics | Fetch lyrics from lrclib.net when no `.lrc` file is found |
-| Blur inactive lines | Fades out lyrics lines that aren't currently playing |
+| Music Folder | Folder to load tracks from — saved and auto-reloaded |
+| Auto-fetch lyrics | Fetch from NetEase/Musixmatch/lrclib when no `.lrc` found |
+| Blur inactive lines | Fades non-active lyric lines |
 | Crossfade | Smooth transition between tracks |
-| Equalizer preset | Basic EQ presets (Flat, Bass Boost, Vocal, Treble Boost) |
-| Accent color | Changes the purple highlight color throughout the UI |
-| Last.fm | Connect your Last.fm account for scrobbling |
+| Equalizer preset | Flat / Bass Boost / Vocal / Treble Boost |
+| Accent color | UI highlight color — 5 presets or dynamic from album art |
+| Last.fm | Connect account for scrobbling |
 
 ---
 
 ## Project Structure
 
 ```
-aurora-player/
-├── src/                     # Frontend (HTML, CSS, JS)
-│   ├── index.html           # App layout and UI
-│   ├── style.css            # All styles and animations
-│   ├── app.js               # Playback, lyrics, Last.fm logic
-│   ├── tauri-api.js         # Bundled @tauri-apps/api (auto-generated)
-│   └── jsmediatags.min.js   # ID3 tag reader (bundled locally)
-├── src-tauri/               # Rust / Tauri backend
+AuroraPlayer/
+├── src/
+│   ├── index.html           # UI layout
+│   ├── style.css            # Styles and animations
+│   ├── app.js               # Playback, lyrics, config, Last.fm
+│   ├── tauri-api.js         # Bundled @tauri-apps/api
+│   └── jsmediatags.min.js   # ID3 tag reader
+├── src-tauri/
 │   ├── src/main.rs          # Rust entry point
-│   ├── tauri.conf.json      # Tauri configuration
-│   ├── Cargo.toml           # Rust dependencies
-│   └── icons/               # App icons for all platforms
-├── package.json
+│   ├── tauri.conf.json      # Tauri config
+│   ├── Cargo.toml           # Rust deps
+│   └── icons/               # App icons
+├── LICENSE
 └── README.md
 ```
 
@@ -179,20 +190,20 @@ aurora-player/
 
 ## Troubleshooting
 
-**Nothing is clickable in the release build**
-Make sure `"csp"` is set to `null` in `src-tauri/tauri.conf.json`. Tauri's Content Security Policy can silently block JavaScript in release mode.
+**Nothing clickable in release build**
+Set `"csp": null` in `src-tauri/tauri.conf.json`.
 
-**Artist/album shows as "Unknown"**
-Aurora reads ID3 tags using `jsmediatags`. Make sure your files have proper tags embedded — you can edit them with [MusicBrainz Picard](https://picard.musicbrainz.org/) (free).
+**Artist/album shows as Unknown**
+Your files may not have ID3 tags. Use [MusicBrainz Picard](https://picard.musicbrainz.org/) (free) to tag them.
 
 **Lyrics not found**
-Check that your file has correct artist and title tags — that's what Aurora uses to search lrclib.net. Alternatively, place a `.lrc` file next to the audio file with the same name.
+Make sure your files have proper artist/title tags — that's what Aurora searches with. Or drop a `.lrc` file next to the audio file.
 
-**Build error: `icons/icon.ico` not found**
-The `src-tauri/icons/` folder must contain icon files. They're included in this repo — if they're missing, re-download the zip.
+**Config not saving**
+Make sure the app has write access to the config directory. On Linux you may need to check `~/.config/aurora/` permissions.
 
-**`custom-protocol` feature error**
-Make sure your `src-tauri/Cargo.toml` has this block:
+**Build error: `custom-protocol` feature**
+Your `src-tauri/Cargo.toml` needs:
 ```toml
 [features]
 default = ["custom-protocol"]
@@ -203,13 +214,15 @@ custom-protocol = ["tauri/custom-protocol"]
 
 ## Built With
 
-- [Tauri](https://tauri.app) — native desktop app shell
-- [Rust](https://www.rust-lang.org) — backend runtime
-- [lrclib.net](https://lrclib.net) — free, open lyrics API
-- [jsmediatags](https://github.com/nicktindall/jsmediatags) — ID3 tag reading
+- [Tauri](https://tauri.app) — native desktop shell
+- [Rust](https://www.rust-lang.org) — backend
+- [NetEase Cloud Music API](https://github.com/Binaryify/NeteaseCloudMusicApi) — lyrics
+- [Musixmatch](https://www.musixmatch.com) — lyrics
+- [lrclib.net](https://lrclib.net) — lyrics fallback
+- [jsmediatags](https://github.com/nicktindall/jsmediatags) — ID3 tags
 - [Last.fm API](https://www.last.fm/api) — scrobbling
-- [Syne](https://fonts.google.com/specimen/Syne) + [DM Sans](https://fonts.google.com/specimen/DM+Sans) — typography
+- [Syne](https://fonts.google.com/specimen/Syne) + [DM Sans](https://fonts.google.com/specimen/DM+Sans) — fonts
 
 ---
 
-Aurora v1.0.0
+© 2025 midplays09 — GNU GPL v3

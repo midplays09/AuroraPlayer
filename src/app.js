@@ -27,11 +27,128 @@ let lfm = {
 
 function saveLfmState() {
   try { localStorage.setItem('aurora_lastfm', JSON.stringify(lfm)); } catch(e) {}
+  saveConfig();
 }
 try {
   const saved = JSON.parse(localStorage.getItem('aurora_lastfm') || '{}');
   Object.assign(lfm, saved);
 } catch(e) {}
+
+/* ─── Config Persistence ─────────────────────────────── */
+// Saves to %APPDATA%/aurora/config.json on Windows,
+// ~/.config/aurora/config.json on Linux/macOS
+// Falls back to localStorage in browser mode
+
+let config = {
+  musicFolder: '',
+  volume: 0.8,
+  shuffle: false,
+  repeat: 0,
+  lyricsVisible: true,
+  accentColor: '#a78bfa',
+  autoLyrics: true,
+  blurLyrics: true,
+  crossfade: false,
+  eqPreset: 'flat',
+  lastfm: {},
+};
+
+async function saveConfig() {
+  config.musicFolder = config.musicFolder || '';
+  config.volume = volume;
+  config.shuffle = isShuffle;
+  config.repeat = repeatMode;
+  config.lyricsVisible = lyricsVisible;
+  config.autoLyrics = document.getElementById('autoLyrics')?.checked ?? true;
+  config.blurLyrics = document.getElementById('blurLyrics')?.checked ?? true;
+  config.crossfade = document.getElementById('crossfade')?.checked ?? false;
+  config.eqPreset = document.getElementById('eqPreset')?.value ?? 'flat';
+  config.accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  config.lastfm = {
+    apiKey: lfm.apiKey, apiSecret: lfm.apiSecret,
+    sessionKey: lfm.sessionKey, username: lfm.username,
+    enabled: lfm.enabled, pendingScrobbles: lfm.pendingScrobbles,
+  };
+
+  if (window.__TAURI__) {
+    try {
+      const { appConfigDir } = TauriAPI.path;
+      const { createDir, writeFile } = TauriAPI.fs;
+      const configDir = await appConfigDir();
+      await createDir(configDir, { recursive: true }).catch(() => {});
+      await writeFile(
+        { path: configDir + 'config.json', contents: JSON.stringify(config, null, 2) }
+      );
+    } catch(e) {
+      try { localStorage.setItem('aurora_config', JSON.stringify(config)); } catch(_) {}
+    }
+  } else {
+    try { localStorage.setItem('aurora_config', JSON.stringify(config)); } catch(e) {}
+  }
+}
+
+async function loadConfig() {
+  let saved = null;
+  if (window.__TAURI__) {
+    try {
+      const { appConfigDir } = TauriAPI.path;
+      const { readTextFile } = TauriAPI.fs;
+      const configDir = await appConfigDir();
+      const text = await readTextFile(configDir + 'config.json');
+      saved = JSON.parse(text);
+    } catch(e) {
+      try { saved = JSON.parse(localStorage.getItem('aurora_config') || 'null'); } catch(_) {}
+    }
+  } else {
+    try { saved = JSON.parse(localStorage.getItem('aurora_config') || 'null'); } catch(e) {}
+  }
+
+  if (!saved) return;
+  Object.assign(config, saved);
+
+  // Apply saved settings
+  volume = config.volume ?? 0.8;
+  audio.volume = volume;
+  isShuffle = config.shuffle ?? false;
+  repeatMode = config.repeat ?? 0;
+  lyricsVisible = config.lyricsVisible ?? true;
+
+  if (config.lastfm) Object.assign(lfm, config.lastfm);
+
+  // Apply UI settings after DOM is ready
+  requestAnimationFrame(() => {
+    updateVolumeUI();
+    document.getElementById('shuffleBtn')?.classList.toggle('active', isShuffle);
+    document.getElementById('lyricsPanel')?.classList.toggle('hidden', !lyricsVisible);
+    document.getElementById('lyricsToggleBtn')?.classList.toggle('active', lyricsVisible);
+
+    const autoLyrics = document.getElementById('autoLyrics');
+    const blurLyrics = document.getElementById('blurLyrics');
+    const crossfade = document.getElementById('crossfade');
+    const eqPreset = document.getElementById('eqPreset');
+    if (autoLyrics) autoLyrics.checked = config.autoLyrics ?? true;
+    if (blurLyrics) blurLyrics.checked = config.blurLyrics ?? true;
+    if (crossfade) crossfade.checked = config.crossfade ?? false;
+    if (eqPreset) eqPreset.value = config.eqPreset ?? 'flat';
+
+    if (config.accentColor) {
+      const c = config.accentColor;
+      document.documentElement.style.setProperty('--accent', c);
+      const r=parseInt(c.slice(1,3),16), g=parseInt(c.slice(3,5),16), b=parseInt(c.slice(5,7),16);
+      document.documentElement.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.15)`);
+      document.querySelectorAll('.swatch').forEach(s => {
+        s.classList.toggle('active', s.dataset.color === c);
+      });
+    }
+
+    updateLfmUI();
+
+    // Auto-reload last music folder
+    if (config.musicFolder && window.__TAURI__) {
+      loadFolderFromPath(config.musicFolder);
+    }
+  });
+}
 
 /* ─── Folder Selection ───────────────────────────────── */
 function selectFolder() {
@@ -89,6 +206,8 @@ async function loadFolderFromPath(dirPath) {
     tracks.forEach(t => loadMeta(t));
     renderTrackList(); renderQueue();
     updateFolderDisplay(dirPath);
+    config.musicFolder = dirPath;
+    saveConfig();
   } catch(e) { console.error('readDir failed:', e); }
 }
 
@@ -280,6 +399,7 @@ function playPrev() {
 function toggleShuffle() {
   isShuffle = !isShuffle;
   document.getElementById('shuffleBtn').classList.toggle('active', isShuffle);
+  saveConfig();
 }
 
 function cycleRepeat() {
@@ -288,6 +408,7 @@ function cycleRepeat() {
   btn.classList.toggle('active', repeatMode > 0);
   btn.title = ['Repeat Off', 'Repeat All', 'Repeat One'][repeatMode];
   btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>`;
+  saveConfig();
 }
 
 function seekTo(e) {
@@ -300,7 +421,7 @@ function setVolume(e) {
   const bar = document.getElementById('volumeBar');
   const rect = bar.getBoundingClientRect();
   volume = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  audio.volume = volume; isMuted = false; updateVolumeUI();
+  audio.volume = volume; isMuted = false; updateVolumeUI(); saveConfig();
 }
 
 function toggleMute() { isMuted = !isMuted; audio.muted = isMuted; updateVolumeUI(); }
@@ -592,6 +713,7 @@ function setAccent(btn) {
   document.documentElement.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.15)`);
   document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
   btn.classList.add('active');
+  saveConfig();
 }
 
 /* ─── Lyrics Panel ───────────────────────────────────── */
@@ -599,6 +721,7 @@ function toggleLyricsPanel() {
   lyricsVisible = !lyricsVisible;
   document.getElementById('lyricsPanel').classList.toggle('hidden', !lyricsVisible);
   document.getElementById('lyricsToggleBtn').classList.toggle('active', lyricsVisible);
+  saveConfig();
 }
 
 /* ─── Window Controls ────────────────────────────────── */
@@ -756,3 +879,4 @@ function musicSVG(size) {
 
 updateVolumeUI();
 updateLfmUI();
+loadConfig();
