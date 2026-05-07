@@ -225,4 +225,4 @@ custom-protocol = ["tauri/custom-protocol"]
 
 ---
 
-© 2025 midplays09 — GNU GPL v3
+© 2026 midplays09 — GNU GPL v3
