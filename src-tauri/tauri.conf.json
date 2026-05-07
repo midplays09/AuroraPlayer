@@ -19,7 +19,6 @@
       "fs": {
         "readDir": true,
         "readFile": true,
-        "readBinaryFile": true,
         "writeFile": true,
         "createDir": true,
         "scope": ["$APPCONFIG/**", "$AUDIO/**", "$HOME/**", "$DOWNLOAD/**", "**"]
