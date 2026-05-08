@@ -1022,3 +1022,172 @@ html, body {
 
 /* ─── Utilities ─────────────────────────────────────── */
 .lyricsToggleBtn.active { color: var(--accent); }
+
+/* ─── Settings scrollable body ──────────────────────── */
+.settings-panel {
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+}
+.settings-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ─── Playlists ─────────────────────────────────────── */
+.new-playlist-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 20px; height: 20px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.new-playlist-btn:hover { background: var(--surface2); color: var(--text); }
+
+.on-repeat-item {
+  position: relative;
+  margin-top: 2px;
+}
+.on-repeat-badge {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 99px;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+.on-repeat-sync {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+/* ─── Full Lyrics Overlay ───────────────────────────── */
+.lyrics-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+}
+.lyrics-overlay.open { display: flex; }
+
+.lyrics-overlay-inner {
+  width: min(680px, 95vw);
+  max-height: calc(100vh - var(--titlebar-h) - var(--player-h) - 40px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 24px 24px;
+  animation: panelIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  position: relative;
+}
+
+.lyrics-overlay-art {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: var(--bg4);
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3);
+  box-shadow: 0 0 0 3px var(--border), 0 0 40px rgba(167,139,250,0.2);
+}
+.lyrics-overlay-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+.lyrics-overlay-meta { text-align: center; }
+.lyrics-overlay-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+.lyrics-overlay-artist {
+  font-size: 14px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+.lyrics-source-overlay {
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 2px 8px;
+  border-radius: 99px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+.lyrics-overlay-content {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0 16px 16px;
+}
+.lyrics-overlay-content .lyric-line {
+  font-size: 22px;
+  transform-origin: center center;
+}
+.lyrics-overlay-content .lyric-line.active {
+  font-size: 26px;
+  transform: scale(1.05);
+}
+
+.lyrics-overlay-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.lyrics-overlay-close:hover { background: var(--surface); color: var(--text); }
+
+.lyrics-expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s;
+}
+.lyrics-expand-btn:hover { color: var(--text); }
+
+/* ─── Playlist modal ────────────────────────────────── */
+#playlistModal .settings-panel { width: 420px; max-height: fit-content; }
+
+/* ─── Icon fix — ensure SVGs inside buttons don't block clicks ── */
+.ctrl-btn svg, .tl svg, .nav-item svg, .titlebar-btn svg,
+.settings-close svg, .load-btn svg, .heart-btn svg,
+.settings-action-btn svg { pointer-events: none; }
+
+/* ─── Lazy image loading fade ───────────────────────── */
+.track-thumb img, .album-art img {
+  animation: imgFade 0.3s ease;
+}
+@keyframes imgFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -19,7 +19,6 @@
       "fs": {
         "readDir": true,
         "readFile": true,
-        "readBinaryFile": true,
         "writeFile": true,
         "createDir": true,
         "scope": ["$APPCONFIG/**", "$AUDIO/**", "$HOME/**", "$DOWNLOAD/**", "**"]
@@ -74,7 +73,8 @@
       }
     },
     "security": {
-      "csp": null
+      "csp": null,
+      "dangerousDisableAssetCspModification": true
     },
     "updater": { "active": false },
     "windows": [
