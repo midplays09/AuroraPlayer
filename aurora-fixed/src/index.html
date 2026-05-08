@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aurora</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Titlebar -->
+  <div class="titlebar" data-tauri-drag-region>
+    <div class="traffic-lights">
+      <button class="tl tl-close" title="Close" onclick="handleClose()">
+        <svg viewBox="0 0 10 10"><path d="M3 3l4 4M7 3L3 7" stroke="rgba(0,0,0,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tl tl-min" title="Minimize" onclick="handleMinimize()">
+        <svg viewBox="0 0 10 10"><path d="M2 5h6" stroke="rgba(0,0,0,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tl tl-max" title="Maximize" onclick="handleMaximize()">
+        <svg viewBox="0 0 10 10"><path d="M3 7l4-4M3 3h4v4" stroke="rgba(0,0,0,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <span class="titlebar-app-name" data-tauri-drag-region>Aurora</span>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn" onclick="toggleSettings()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Full Lyrics Overlay -->
+  <div class="lyrics-overlay" id="lyricsOverlay" onclick="closeLyricsOverlay(event)">
+    <div class="lyrics-overlay-inner">
+      <div class="lyrics-overlay-art" id="overlayArt"></div>
+      <div class="lyrics-overlay-meta">
+        <div class="lyrics-overlay-title" id="overlayTitle">—</div>
+        <div class="lyrics-overlay-artist" id="overlayArtist">—</div>
+        <div class="lyrics-source-overlay" id="lyricsSourceOverlay"></div>
+      </div>
+      <div class="lyrics-overlay-content" id="lyricsOverlayContent"></div>
+      <button class="lyrics-overlay-close" onclick="toggleLyricsOverlay()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="20" height="20"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="settings-overlay" id="settingsOverlay" onclick="closeSettings(event)">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="settings-close" onclick="toggleSettings()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section">
+          <h3>Library</h3>
+          <div class="settings-row">
+            <div>
+              <div class="settings-label">Music Folder</div>
+              <div class="settings-sublabel" id="folderPathDisplay">No folder selected</div>
+            </div>
+            <button class="settings-action-btn" onclick="selectFolder()">Browse</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Lyrics</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Auto-fetch lyrics</div><div class="settings-sublabel">NetEase → Musixmatch → lrclib</div></div>
+            <label class="toggle"><input type="checkbox" id="autoLyrics" checked onchange="saveConfig()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Blur inactive lines</div></div>
+            <label class="toggle"><input type="checkbox" id="blurLyrics" checked onchange="saveConfig()"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Playback</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Crossfade</div><div class="settings-sublabel">Smooth transition between tracks</div></div>
+            <label class="toggle"><input type="checkbox" id="crossfade" onchange="saveConfig()"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Equalizer preset</div></div>
+            <select class="settings-select" id="eqPreset" onchange="saveConfig()">
+              <option value="flat">Flat</option>
+              <option value="bass">Bass Boost</option>
+              <option value="vocal">Vocal</option>
+              <option value="treble">Treble Boost</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Appearance</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Accent color</div></div>
+            <div class="color-swatches">
+              <button class="swatch active" style="background:#a78bfa" data-color="#a78bfa" onclick="setAccent(this)"></button>
+              <button class="swatch" style="background:#34d399" data-color="#34d399" onclick="setAccent(this)"></button>
+              <button class="swatch" style="background:#f472b6" data-color="#f472b6" onclick="setAccent(this)"></button>
+              <button class="swatch" style="background:#60a5fa" data-color="#60a5fa" onclick="setAccent(this)"></button>
+              <button class="swatch" style="background:#fb923c" data-color="#fb923c" onclick="setAccent(this)"></button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Last.fm</h3>
+          <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;">
+            <div class="settings-label">API Credentials</div>
+            <div class="settings-sublabel">Get yours at <a href="https://www.last.fm/api/account/create" target="_blank" style="color:var(--accent)">last.fm/api/account/create</a></div>
+            <input class="lfm-input" id="lfmApiKey" type="text" placeholder="API Key" autocomplete="off">
+            <input class="lfm-input" id="lfmApiSecret" type="text" placeholder="API Secret" autocomplete="off">
+            <button class="settings-action-btn" onclick="lfmSaveCredentials()" style="align-self:flex-end">Save Credentials</button>
+          </div>
+          <div id="lfmDisconnected">
+            <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding-top:8px;">
+              <div class="settings-label">Sign In</div>
+              <input class="lfm-input" id="lfmUser" type="text" placeholder="Last.fm Username" autocomplete="username">
+              <input class="lfm-input" id="lfmPass" type="password" placeholder="Password" autocomplete="current-password">
+              <button class="settings-action-btn lfm-connect-btn" onclick="lfmLogin()">Connect to Last.fm</button>
+            </div>
+          </div>
+          <div id="lfmConnected" style="display:none">
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Connected</div>
+                <div class="settings-sublabel">Scrobbling as <strong id="lfmUserDisplay" style="color:var(--accent)"></strong></div>
+              </div>
+              <button class="settings-action-btn" onclick="lfmDisconnect()">Disconnect</button>
+            </div>
+          </div>
+          <div class="lfm-status" id="lfmStatus"></div>
+        </div>
+      </div>
+      <div class="settings-version">Aurora v1.1.0 · Built with Tauri</div>
+    </div>
+  </div>
+
+  <!-- Playlist Modal -->
+  <div class="settings-overlay" id="playlistModal" onclick="closePlaylistModal(event)">
+    <div class="settings-panel" style="width:420px">
+      <div class="settings-header">
+        <h2 id="playlistModalTitle">New Playlist</h2>
+        <button class="settings-close" onclick="closePlaylistModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+        <input class="lfm-input" id="playlistNameInput" type="text" placeholder="Playlist name…" autocomplete="off">
+        <button class="settings-action-btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="confirmCreatePlaylist()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Layout -->
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Library</div>
+        <div class="sidebar-nav">
+          <button class="nav-item active" onclick="setView('songs',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            Songs
+          </button>
+          <button class="nav-item" onclick="setView('albums',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            Albums
+          </button>
+          <button class="nav-item" onclick="setView('artists',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Artists
+          </button>
+        </div>
+      </div>
+      <div class="sidebar-section" style="flex-shrink:0">
+        <div class="sidebar-label" style="display:flex;align-items:center;justify-content:space-between">
+          Playlists
+          <button class="new-playlist-btn" onclick="openCreatePlaylist()" title="New playlist">+</button>
+        </div>
+        <div class="sidebar-nav" id="playlistNav">
+          <!-- auto-generated playlist items -->
+        </div>
+        <!-- On Repeat special playlist -->
+        <button class="nav-item on-repeat-item" onclick="setView('playlist-onrepeat',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          On Repeat
+          <span class="on-repeat-badge" id="onRepeatBadge"></span>
+        </button>
+      </div>
+      <div class="sidebar-section" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="sidebar-label">Queue</div>
+        <div class="queue-list" id="queueList"><div class="queue-empty">No tracks loaded</div></div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="ambient-bg" id="ambientBg"></div>
+
+      <!-- Songs -->
+      <div class="view active" id="view-songs">
+        <div class="view-header">
+          <h1>Your Library</h1>
+          <div class="header-actions">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="searchInput" placeholder="Search tracks…" oninput="filterTracks(this.value)">
+            </div>
+            <button class="load-btn" onclick="selectFolder()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Open Folder
+            </button>
+          </div>
+        </div>
+        <div class="track-list-header">
+          <span class="col-num">#</span>
+          <span class="col-title">Title</span>
+          <span class="col-artist">Artist</span>
+          <span class="col-album">Album</span>
+          <span class="col-dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="track-list" id="trackList">
+          <div class="empty-state">
+            <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" width="64" height="64"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+            <p>Open a folder to load your music</p>
+            <button class="load-btn" onclick="selectFolder()">Open Music Folder</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Albums -->
+      <div class="view" id="view-albums">
+        <div class="view-header"><h1>Albums</h1></div>
+        <div class="albums-grid" id="albumsGrid"></div>
+      </div>
+
+      <!-- Artists -->
+      <div class="view" id="view-artists">
+        <div class="view-header"><h1>Artists</h1></div>
+        <div class="artists-grid" id="artistsGrid"></div>
+      </div>
+
+      <!-- On Repeat Playlist -->
+      <div class="view" id="view-playlist-onrepeat">
+        <div class="view-header">
+          <div>
+            <h1>On Repeat</h1>
+            <p style="color:var(--text2);font-size:13px;margin-top:4px">Tracks you've listened to the most — syncs every hour</p>
+          </div>
+          <div class="on-repeat-sync" id="onRepeatSyncStatus"></div>
+        </div>
+        <div class="track-list-header">
+          <span class="col-num">#</span>
+          <span class="col-title">Title</span>
+          <span class="col-artist">Artist</span>
+          <span class="col-album">Play time</span>
+          <span class="col-dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="track-list" id="onRepeatList"></div>
+      </div>
+
+      <!-- Custom Playlists -->
+      <div class="view" id="view-playlist-custom">
+        <div class="view-header">
+          <h1 id="customPlaylistTitle">Playlist</h1>
+          <button class="load-btn" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="deleteCurrentPlaylist()">Delete Playlist</button>
+        </div>
+        <div class="track-list-header">
+          <span class="col-num">#</span>
+          <span class="col-title">Title</span>
+          <span class="col-artist">Artist</span>
+          <span class="col-album">Album</span>
+          <span class="col-dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="track-list" id="customPlaylistTracks"></div>
+      </div>
+    </main>
+
+    <!-- Lyrics Panel -->
+    <div class="lyrics-panel" id="lyricsPanel">
+      <div class="lyrics-panel-header">
+        <span>Lyrics</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="lyrics-source" id="lyricsSource"></div>
+          <button class="lyrics-expand-btn" onclick="toggleLyricsOverlay()" title="Full screen lyrics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="lyrics-content" id="lyricsContent">
+        <div class="lyrics-idle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" width="40" height="40"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <p>Play a track to see lyrics</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Player Bar -->
+  <div class="player-bar">
+    <div class="player-left">
+      <div class="player-art-wrap">
+        <div class="player-art spinning" id="playerArt">
+          <div class="art-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" width="28" height="28"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+          <div class="vinyl-hole"></div>
+        </div>
+      </div>
+      <div class="player-track-info">
+        <div class="player-track-name" id="playerTrackName">—</div>
+        <div class="player-track-artist" id="playerTrackArtist">Select a track to play</div>
+      </div>
+      <button class="heart-btn" id="heartBtn" onclick="toggleLike()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </button>
+    </div>
+    <div class="player-center">
+      <div class="player-controls">
+        <button class="ctrl-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="playPrev()" title="Previous">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        </button>
+        <button class="play-btn" id="playBtn" onclick="togglePlay()">
+          <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+        <button class="ctrl-btn" onclick="playNext()" title="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+        </button>
+        <button class="ctrl-btn" id="repeatBtn" onclick="cycleRepeat()" title="Repeat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        </button>
+      </div>
+      <div class="progress-row">
+        <span class="time-label" id="currentTime">0:00</span>
+        <div class="progress-bar" id="progressBar" onclick="seekTo(event)">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-thumb" id="progressThumb"></div>
+        </div>
+        <span class="time-label" id="totalTime">0:00</span>
+      </div>
+    </div>
+    <div class="player-right">
+      <div class="lfm-badge" id="lfmBadge" style="display:none">✓ Scrobbled</div>
+      <button class="ctrl-btn small" onclick="toggleLyricsOverlay()" title="Full lyrics" id="lyricsOverlayBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+      </button>
+      <button class="ctrl-btn small" onclick="toggleLyricsPanel()" title="Lyrics panel" id="lyricsToggleBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <div class="volume-row">
+        <button class="ctrl-btn small" onclick="toggleMute()">
+          <svg id="volIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        <div class="volume-bar" id="volumeBar" onclick="setVolume(event)">
+          <div class="volume-fill" id="volumeFill" style="width:80%"></div>
+          <div class="volume-thumb" id="volumeThumb" style="left:80%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audioEl"></audio>
+  <input type="file" id="folderInput" webkitdirectory multiple accept="audio/*" style="display:none" onchange="loadFolder(this.files)">
+
+  <script src="jsmediatags.min.js"></script>
+  <script src="tauri-api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
