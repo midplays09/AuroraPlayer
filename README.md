@@ -300,4 +300,8 @@ custom-protocol = ["tauri/custom-protocol"]
 
 *Built because every music player either costs money or uses 22GB of RAM*
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Midplays09/auroraPlayer&type=timeline)](https://star-history.com/#Midplays09/auroraPlayer&timeline)
+
 </div>
