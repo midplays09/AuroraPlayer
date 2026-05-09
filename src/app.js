@@ -129,7 +129,7 @@ async function loadConfig() {
 /* ─── Folder / File loading ──────────────────────────*/
 function selectFolder() {
   if (window.__TAURI__) {
-    window.__TAURI__.dialog.open({ directory:true, multiple:false })
+    TauriAPI.dialog.open({ directory:true, multiple:false })
       .then(p => { if (p) loadFolderFromPath(p); })
       .catch(() => document.getElementById('folderInput').click());
   } else {
