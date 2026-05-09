@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
 
   <!-- Titlebar -->
   <div class="titlebar" data-tauri-drag-region>
@@ -85,6 +86,25 @@
             <label class="toggle"><input type="checkbox" id="crossfade" onchange="saveConfig()"><span class="toggle-slider"></span></label>
           </div>
           <div class="settings-row">
+            <div><div class="settings-label">Playback speed</div></div>
+            <div class="speed-row">
+              <button class="speed-btn" onclick="changeSpeed(-0.25)">−</button>
+              <span class="speed-label" id="speedLabel">1×</span>
+              <button class="speed-btn" onclick="changeSpeed(0.25)">+</button>
+            </div>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Sleep timer</div><div class="settings-sublabel">Stop playback after a set time</div></div>
+            <select class="settings-select" id="sleepTimerSelect" onchange="setSleepTimer(this.value)">
+              <option value="0">Off</option>
+              <option value="15">15 min</option>
+              <option value="30">30 min</option>
+              <option value="45">45 min</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+            </select>
+          </div>
+          <div class="settings-row">
             <div><div class="settings-label">Equalizer preset</div></div>
             <select class="settings-select" id="eqPreset" onchange="saveConfig()">
               <option value="flat">Flat</option>
@@ -96,6 +116,17 @@
         </div>
         <div class="settings-section">
           <h3>Appearance</h3>
+          <div class="settings-row">
+            <div><div class="settings-label">Background effect</div><div class="settings-sublabel">Animated background</div></div>
+          </div>
+          <div class="bg-options" style="padding:0 0 12px">
+            <button class="bg-option active" data-bg="none" onclick="setBgEffect('none',this)">None</button>
+            <button class="bg-option" data-bg="rain" onclick="setBgEffect('rain',this)">🌧 Rain</button>
+            <button class="bg-option" data-bg="snow" onclick="setBgEffect('snow',this)">❄️ Snow</button>
+            <button class="bg-option" data-bg="stars" onclick="setBgEffect('stars',this)">✨ Stars</button>
+            <button class="bg-option" data-bg="fireflies" onclick="setBgEffect('fireflies',this)">🌿 Fireflies</button>
+            <button class="bg-option" data-bg="matrix" onclick="setBgEffect('matrix',this)">🟢 Matrix</button>
+          </div>
           <div class="settings-row">
             <div><div class="settings-label">Accent color</div></div>
             <div class="color-swatches">
@@ -174,6 +205,14 @@
           <button class="nav-item" onclick="setView('artists',this)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             Artists
+          </button>
+          <button class="nav-item" onclick="setView('liked',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Liked
+          </button>
+          <button class="nav-item" onclick="setView('stats',this)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Stats
           </button>
         </div>
       </div>
@@ -268,7 +307,10 @@
       <div class="view" id="view-playlist-custom">
         <div class="view-header">
           <h1 id="customPlaylistTitle">Playlist</h1>
-          <button class="load-btn" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="deleteCurrentPlaylist()">Delete Playlist</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="load-btn" onclick="openAddSongsModal()">+ Add Songs</button>
+            <button class="load-btn" style="background:transparent;border:1px solid var(--border);color:var(--text2)" onclick="deleteCurrentPlaylist()">Delete Playlist</button>
+          </div>
         </div>
         <div class="track-list-header">
           <span class="col-num">#</span>
@@ -278,6 +320,22 @@
           <span class="col-dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
         </div>
         <div class="track-list" id="customPlaylistTracks"></div>
+      </div>
+      <!-- Liked Songs -->
+      <div class="view" id="view-liked">
+        <div class="view-header"><h1>Liked Songs</h1></div>
+        <div class="track-list-header">
+          <span class="col-num">#</span><span class="col-title">Title</span>
+          <span class="col-artist">Artist</span><span class="col-album">Album</span>
+          <span class="col-dur"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        </div>
+        <div class="track-list" id="likedTrackList"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="view" id="view-stats">
+        <div class="view-header"><h1>Your Stats</h1></div>
+        <div class="stats-grid" id="statsGrid"></div>
       </div>
     </main>
 
@@ -348,6 +406,7 @@
     </div>
     <div class="player-right">
       <div class="lfm-badge" id="lfmBadge" style="display:none">✓ Scrobbled</div>
+      <div class="sleep-timer-badge" id="sleepTimerBadge" style="display:none" onclick="toggleSettings()">💤 --:--</div>
       <button class="ctrl-btn small" onclick="toggleLyricsOverlay()" title="Full lyrics" id="lyricsOverlayBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
       </button>
@@ -365,6 +424,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Add Songs Modal -->
+  <div class="settings-overlay" id="addSongsModal" style="display:none" onclick="closeAddSongsModal(event)">
+    <div class="settings-panel" style="width:520px;max-height:80vh;display:flex;flex-direction:column">
+      <div class="settings-header">
+        <h2>Add Songs</h2>
+        <button class="settings-close" onclick="closeAddSongsModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div style="padding:0 24px 12px">
+        <input class="lfm-input" id="addSongsSearch" type="text" placeholder="Search songs…" oninput="filterAddSongs(this.value)" autocomplete="off">
+      </div>
+      <div id="addSongsList" style="overflow-y:auto;flex:1;padding:0 12px 16px"></div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <div class="context-menu" id="contextMenu" style="display:none"></div>
 
   <audio id="audioEl"></audio>
   <input type="file" id="folderInput" webkitdirectory multiple accept="audio/*" style="display:none" onchange="loadFolder(this.files)">

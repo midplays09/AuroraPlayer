@@ -21,7 +21,7 @@
         "readFile": true,
         "writeFile": true,
         "createDir": true,
-        "scope": ["$APPCONFIG/**", "$AUDIO/**", "$HOME/**", "$DOWNLOAD/**", "**"]
+        "scope": ["$APPCONFIG/**", "**"]
       },
       "path": {
         "all": true

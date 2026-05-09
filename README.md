@@ -14,6 +14,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Built with Tauri](https://img.shields.io/badge/Built%20with-Tauri-24C8D8?logo=tauri)](https://tauri.app)
 [![Rust](https://img.shields.io/badge/Backend-Rust-orange?logo=rust)](https://www.rust-lang.org)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/3Ns6TW8cKD)
 
 </div>
 
@@ -38,8 +39,8 @@
 
 ---
 
-## Memory usage (before vs after optimization)
-
+## Memory usage (before vs after optimization) 
+- This is an estimate!
 ```
 Before fix   ████████████████████████░░░░░░░  ~22 GB  (500 tracks)
 After fix    ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ~180 MB (500 tracks)
@@ -298,10 +299,10 @@ custom-protocol = ["tauri/custom-protocol"]
 
 © 2026 midplays09 — GNU GPL v3
 
-*Built because every music player either costs money or uses 22GB of RAM*
+*Built because every music player either costs money or doesn't have a good UI.
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Midplays09/auroraPlayer&type=timeline&theme=dark)](https://star-history.com/#Midplays09/auroraPlayer&timeline)
+[![Star History Chart](https://api.star-history.com/svg?repos=Midplays09/auroraPlayer&type=Date&theme=dark)](https://www.star-history.com/#Midplays09/auroraPlayer&Date)
 
 </div>

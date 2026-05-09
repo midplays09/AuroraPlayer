@@ -200,6 +200,20 @@ html, body {
 .queue-item.active { background: var(--accent-dim); }
 .queue-item.active .qi-title { color: var(--accent); }
 
+.qi-drag {
+  font-size: 14px;
+  color: var(--text3);
+  cursor: grab;
+  padding: 0 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+  user-select: none;
+}
+.queue-item:hover .qi-drag { opacity: 1; }
+.queue-item.dragging { opacity: 0.4; }
+.queue-item.drag-over { background: var(--accent-dim); outline: 1px solid var(--accent); }
+
 .qi-num {
   font-size: 11px;
   color: var(--text3);
@@ -749,7 +763,10 @@ html, body {
   transition: height 0.15s;
 }
 .progress-bar:hover { height: 6px; }
-.progress-bar:hover .progress-thumb { opacity: 1; transform: translateX(-50%) scale(1); }
+.progress-bar:hover .progress-thumb {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-50%) scale(1); /* ← FIX: keep translateY(-50%) when scaling up */
+}
 
 .progress-fill {
   height: 100%;
@@ -764,7 +781,7 @@ html, body {
   position: absolute;
   top: 50%;
   left: 0%;
-  transform: translateX(-50%) translateY(-50%) scale(0.5);
+  transform: translateX(-50%) translateY(-50%) scale(0.5); /* ← FIX: always include translateY(-50%) */
   width: 12px; height: 12px;
   border-radius: 50%;
   background: #fff;
@@ -797,7 +814,10 @@ html, body {
   transition: height 0.15s;
 }
 .volume-bar:hover { height: 6px; }
-.volume-bar:hover .volume-thumb { opacity: 1; transform: translateX(-50%) translateY(-50%) scale(1); }
+.volume-bar:hover .volume-thumb {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-50%) scale(1); /* ← FIX: same fix for volume thumb */
+}
 
 .volume-fill {
   height: 100%;
@@ -810,7 +830,7 @@ html, body {
 .volume-thumb {
   position: absolute;
   top: 50%;
-  transform: translateX(-50%) translateY(-50%) scale(0.5);
+  transform: translateX(-50%) translateY(-50%) scale(0.5); /* ← FIX: always include translateY(-50%) */
   width: 10px; height: 10px;
   border-radius: 50%;
   background: #fff;
@@ -1190,4 +1210,251 @@ html, body {
 @keyframes imgFade {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+/* ─── Context Menu ─────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  z-index: 9999;
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  font-size: 13px;
+}
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text1);
+  position: relative;
+  white-space: nowrap;
+}
+.ctx-item:hover { background: var(--surface3); }
+.ctx-item.ctx-disabled { color: var(--text3); cursor: default; }
+.ctx-item.ctx-disabled:hover { background: transparent; }
+.ctx-item.ctx-danger { color: #f87171; }
+.ctx-has-sub { position: relative; }
+.ctx-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  background: var(--surface2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+  min-width: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.ctx-has-sub:hover .ctx-submenu { display: block; }
+.ctx-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* ─── Inline rename input ──────────────────────────── */
+.playlist-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rename-input {
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text1);
+  font-size: inherit;
+  font-family: inherit;
+  font-weight: inherit;
+  padding: 2px 8px;
+  outline: none;
+  width: 260px;
+}
+.rename-btn {
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.rename-btn:hover { color: var(--text1); background: var(--surface2); }
+
+/* ─── Add Songs Modal ──────────────────────────────── */
+.add-song-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.add-song-row:hover { background: var(--surface2); }
+.add-song-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: transparent;
+  transition: all 0.15s;
+}
+.add-song-check.added {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ─── Background Effects Canvas ─────────────────────── */
+#bgCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+}
+/* ensure content sits above canvas without overriding position:fixed */
+.app { z-index: 1; }
+.player-bar { z-index: 50; }
+.titlebar { z-index: 100; }
+
+/* ─── Sleep Timer badge ──────────────────────────────── */
+.sleep-timer-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.sleep-timer-badge:hover { background: var(--surface); }
+.sleep-timer-badge.active { color: var(--accent); border-color: var(--accent); }
+
+/* ─── Background effect selector ────────────────────── */
+.bg-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.bg-option {
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bg-option:hover { border-color: var(--accent); color: var(--text); }
+.bg-option.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* ─── Speed control ──────────────────────────────────── */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.speed-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.speed-btn:hover { background: var(--surface2); color: var(--text); }
+.speed-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 36px;
+  text-align: center;
+}
+
+/* ─── Stats view ─────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 8px 28px 28px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+/* ─── Context menu ───────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 500;
+  min-width: 180px;
+  padding: 4px;
+  animation: panelIn 0.15s ease;
+}
+.context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.context-item:hover { background: var(--surface2); }
+.context-item svg { width: 14px; height: 14px; color: var(--text2); flex-shrink: 0; }
+.context-separator { height: 1px; background: var(--border); margin: 4px 0; }
+
+/* ─── Liked Songs view ───────────────────────────────── */
+.liked-badge {
+  font-size: 10px;
+  background: rgba(248,113,113,0.15);
+  color: #f87171;
+  border-radius: 99px;
+  padding: 1px 6px;
+  margin-left: auto;
 }
