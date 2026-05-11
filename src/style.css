@@ -1458,3 +1458,11 @@ html, body {
   padding: 1px 6px;
   margin-left: auto;
 }
+
+/* ─── GitHub titlebar button ─────────────────────────── */
+.titlebar-btn[href] {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

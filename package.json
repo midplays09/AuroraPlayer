@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.6.0",
-    "jsmediatags": "^3.9.7"
+    "jsmediatags": "^3.9.7",
+    "tauri-plugin-drpc": "^1.0.3"
   }
 }

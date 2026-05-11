@@ -1,10 +1,10 @@
-/* ─── Aurora Player v1.2 — app.js ───────────────────── */
+/*  Aurora Player v1.2 — app.js  */
 'use strict';
 
 const audio = document.getElementById('audioEl');
 audio.preload = 'none';
 
-// ── State ─────────────────────────────────────────────
+//  State 
 let tracks = [];          // full library
 let filteredTracks = [];  // search-filtered view
 let currentIndex = -1;
@@ -21,28 +21,28 @@ let plainLyrics = [];
 let currentView = 'songs';
 let activeLyricIdx = -1;
 
-// ── Playlists ─────────────────────────────────────────
+//  Playlists 
 let playlists = {};       // { id: { name, trackIds[] } }
 let currentPlaylistId = null;
 
-// ── On Repeat tracking ────────────────────────────────
+//  On Repeat tracking 
 let listenLog = {};       // { trackKey: totalSecondsListened }
 let lastOnRepeatSync = 0;
 const ON_REPEAT_INTERVAL = 60 * 60 * 1000; // 1 hour
 const ON_REPEAT_MIN_SECONDS = 180;          // 3 min to qualify
 const ON_REPEAT_MAX = 25;
 
-// ── Art cache — stores only ONE blob URL per track ────
+//  Art cache — stores only ONE blob URL per track 
 const artCache = new Map(); // trackId → blobUrl
 
-// ── Shared reusable canvas for colour sampling ────────
+//  Shared reusable canvas for colour sampling 
 const _canvas = document.createElement('canvas');
 _canvas.width = _canvas.height = 8;
 const _ctx = _canvas.getContext('2d', { willReadFrequently: true });
 
 audio.volume = volume;
 
-/* ─── Last.fm ─────────────────────────────────────────*/
+/*  Last.fm */
 const LASTFM_API_URL = 'https://ws.audioscrobbler.com/2.0/';
 let lfm = {
   apiKey:'', apiSecret:'', sessionKey:'', username:'',
@@ -50,10 +50,10 @@ let lfm = {
   pendingScrobbles:[],
 };
 
-/* ─── Config ──────────────────────────────────────────*/
+/*  Config */
 let config = {
   musicFolder:'', volume:0.8, shuffle:false, repeat:0,
-  lyricsVisible:true, accentColor:'#a78bfa',
+  lyricsVisible:true, accentColor:'#a78bfa', dynamicColor:false,
   autoLyrics:true, blurLyrics:true, crossfade:false, eqPreset:'flat',
   lastfm:{}, playlists:{}, listenLog:{},
 };
@@ -119,17 +119,19 @@ async function loadConfig() {
     if (el('blurLyrics')) el('blurLyrics').checked = config.blurLyrics ?? true;
     if (el('crossfade'))  el('crossfade').checked  = config.crossfade ?? false;
     if (el('eqPreset'))   el('eqPreset').value      = config.eqPreset ?? 'flat';
-    if (config.accentColor) applyAccent(config.accentColor);
+    if (config.accentColor) applyAccent(config.accentColor, false);
+    const dynToggle = document.getElementById('dynamicColorToggle');
+    if (dynToggle) dynToggle.checked = config.dynamicColor ?? false;
     updateLfmUI();
     renderPlaylistNav();
     if (config.musicFolder && window.__TAURI__) loadFolderFromPath(config.musicFolder);
   });
 }
 
-/* ─── Folder / File loading ──────────────────────────*/
+/*  Folder / File loading */
 function selectFolder() {
   if (window.__TAURI__) {
-    window.__TAURI__.dialog.open({ directory:true, multiple:false })
+    TauriAPI.dialog.open({ directory:true, multiple:false })
       .then(p => { if (p) loadFolderFromPath(p); })
       .catch(() => document.getElementById('folderInput').click());
   } else {
@@ -202,7 +204,7 @@ function updateFolderDisplay(text) {
   if (el) el.textContent = text;
 }
 
-/* ─── Lazy metadata loading ──────────────────────────*/
+/*  Lazy metadata loading */
 // Loads tags for visible tracks first, then queues the rest
 // Uses a small batch size so the UI never freezes
 const META_BATCH = 8;
@@ -288,7 +290,7 @@ function freeAllArt() {
 
 function getArt(trackId) { return artCache.get(trackId) || null; }
 
-/* ─── Rendering ──────────────────────────────────────*/
+/*  Rendering */
 function renderTrackList(list = filteredTracks, containerId = 'trackList', showPlaytime = false) {
   const el = document.getElementById(containerId);
   if (!list.length) {
@@ -302,7 +304,7 @@ function renderTrackList(list = filteredTracks, containerId = 'trackList', showP
       : `<div class="track-artist">${esc(t.artist)}</div>`;
     return `
     <div class="track-row${currentIndex===t.id?' active':''}" data-id="${t.id}" onclick="playTrack(${t.id})" oncontextmenu="showContextMenu(event,${t.id})" style="animation-delay:${Math.min(i*0.015,0.4)}s">
-      <div class="track-num">${currentIndex===t.id&&isPlaying?'▶':i+1}</div>
+      <div class="track-num">${currentIndex===t.id&&isPlaying?'':i+1}</div>
       <div class="track-info">
         <div class="track-thumb">${art?`<img src="${art}" alt="" loading="lazy">`:musicSVG(14)}</div>
         <div class="track-titles"><div class="track-title">${esc(t.name)}</div></div>
@@ -332,7 +334,7 @@ function renderQueue() {
   if (!tracks.length) { list.innerHTML = '<div class="queue-empty">No tracks loaded</div>'; return; }
   list.innerHTML = tracks.map((t, i) => `
     <div class="queue-item${currentIndex===t.id?' active':''}" data-qid="${t.id}" draggable="true" onclick="playTrack(${t.id})" oncontextmenu="showQueueContextMenu(event,${t.id})">
-      <span class="qi-drag" onclick="event.stopPropagation()">⠿</span>
+      <span class="qi-drag" onclick="event.stopPropagation()"></span>
       <span class="qi-num">${i+1}</span>
       <div class="qi-info">
         <div class="qi-title">${esc(t.name)}</div>
@@ -422,7 +424,7 @@ function renderArtists() {
 
 function playAlbum(ids) { if (ids.length) playTrack(ids[0]); }
 
-/* ─── Playlists ──────────────────────────────────────*/
+/*  Playlists */
 function renderPlaylistNav() {
   const nav = document.getElementById('playlistNav');
   if (!nav) return;
@@ -510,7 +512,7 @@ function confirmRenamePlaylist(id) {
   renderPlaylistTitle(id);
 }
 
-/* ─── Add Songs Modal ────────────────────────────────*/
+/*  Add Songs Modal */
 function openAddSongsModal() {
   if (!currentPlaylistId) return;
   document.getElementById('addSongsSearch').value = '';
@@ -584,7 +586,7 @@ function addToPlaylist(trackId, playlistId) {
   saveConfig();
 }
 
-/* ─── On Repeat ──────────────────────────────────────*/
+/*  On Repeat */
 function trackKey(t) { return `${t.name}|||${t.artist}`; }
 
 function recordListenTime(seconds) {
@@ -650,7 +652,7 @@ function formatListenTime(secs) {
   return `${secs}s played`;
 }
 
-/* ─── Playback ───────────────────────────────────────*/
+/*  Playback */
 let listenStart = 0;
 
 function playTrack(id) {
@@ -667,6 +669,8 @@ function playTrack(id) {
   listenStart = Date.now();
   updatePlayerUI(); updateActiveRows(); renderQueue();
   loadLyrics(track); updateAmbient(track.id);
+  loadMetaOnPlay(track);
+  discordUpdate(track, true);
   // Last.fm
   lfm.scrobbled = false;
   lfm.scrobbleThreshold = Math.min(track.duration / 2, 240);
@@ -736,7 +740,7 @@ function toggleLike() {
   document.getElementById('heartBtn').classList.toggle('liked', liked.has(currentIndex));
 }
 
-/* ─── UI Updates ─────────────────────────────────────*/
+/*  UI Updates */
 function updatePlayerUI() {
   const track = tracks.find(t => t.id === currentIndex);
   if (!track) return;
@@ -772,7 +776,7 @@ function updateActiveRows() {
     const active = parseInt(r.dataset.id) === currentIndex;
     r.classList.toggle('active', active);
     const numEl = r.querySelector('.track-num');
-    if (numEl) numEl.textContent = active ? '▶' : (filteredTracks.findIndex(t=>t.id===parseInt(r.dataset.id))+1 || '');
+    if (numEl) numEl.textContent = active ? '' : (filteredTracks.findIndex(t=>t.id===parseInt(r.dataset.id))+1 || '');
   });
   document.querySelectorAll('.queue-item').forEach((r, i) => {
     r.classList.toggle('active', tracks[i]?.id === currentIndex);
@@ -797,27 +801,38 @@ function updateAmbient(trackId) {
     try {
       _ctx.drawImage(img, 0, 0, 8, 8);
       const d = _ctx.getImageData(0, 0, 8, 8).data;
-      let r=0,g=0,b=0;
+      let r=0, g=0, b=0;
       for (let i=0; i<d.length; i+=4) { r+=d[i]; g+=d[i+1]; b+=d[i+2]; }
       const n = d.length/4;
-      const col = `rgba(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)},0.18)`;
-      bg.style.background = `radial-gradient(ellipse 60% 50% at 50% -10%, ${col}, transparent 70%)`;
-      applyAccent(rgbToHex(Math.round(r/n), Math.round(g/n), Math.round(b/n)));
+      const R = Math.round(r/n), G = Math.round(g/n), B = Math.round(b/n);
+      // Always update ambient background glow
+      bg.style.background = `radial-gradient(ellipse 60% 50% at 50% -10%, rgba(${R},${G},${B},0.18), transparent 70%)`;
+      // Only update accent color if dynamic color is enabled
+      if (config.dynamicColor) {
+        applyAccent(rgbToHex(R, G, B), false); // false = don't save, it's temporary
+      }
     } catch {}
   };
   img.src = art;
 }
 
-function applyAccent(color) {
+function applyAccent(color, save = true) {
   document.documentElement.style.setProperty('--accent', color);
   const r=parseInt(color.slice(1,3),16), g=parseInt(color.slice(3,5),16), b=parseInt(color.slice(5,7),16);
   document.documentElement.style.setProperty('--accent-dim', `rgba(${r},${g},${b},0.15)`);
   document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('active', s.dataset.color===color));
+  if (save) saveConfig();
 }
 
+function setAccent(btn) {
+  config.dynamicColor = false;
+  const dynToggle = document.getElementById('dynamicColorToggle');
+  if (dynToggle) dynToggle.checked = false;
+  applyAccent(btn.dataset.color, true);
+}
 function rgbToHex(r,g,b) { return '#'+[r,g,b].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 
-/* ─── Audio events ───────────────────────────────────*/
+/*  Audio events */
 audio.addEventListener('timeupdate', () => {
   if (!audio.duration) return;
   const pct = (audio.currentTime / audio.duration) * 100;
@@ -839,10 +854,18 @@ audio.addEventListener('ended', () => {
   if (repeatMode===2) { audio.play(); return; }
   playNext();
 });
-audio.addEventListener('play',  () => { isPlaying=true;  updatePlayBtn(); updateSpinning(); updateActiveRows(); });
-audio.addEventListener('pause', () => { isPlaying=false; updatePlayBtn(); updateSpinning(); });
+audio.addEventListener('play',  () => {
+  isPlaying=true;  updatePlayBtn(); updateSpinning(); updateActiveRows();
+  const t = tracks.find(t=>t.id===currentIndex);
+  if (t) discordUpdate(t, true);
+});
+audio.addEventListener('pause', () => {
+  isPlaying=false; updatePlayBtn(); updateSpinning();
+  const t = tracks.find(t=>t.id===currentIndex);
+  if (t) discordUpdate(t, false);
+});
 
-/* ─── Lyrics ─────────────────────────────────────────*/
+/*  Lyrics */
 async function loadLyrics(track) {
   syncedLyrics=[]; plainLyrics=[]; activeLyricIdx=-1;
   const content = document.getElementById('lyricsContent');
@@ -899,7 +922,7 @@ async function fetchFromNetEase(title, artist) {
   const lr  = await fetchWithTimeout(`https://netease-cloud-music-api-taupe-phi.vercel.app/lyric?id=${song.id}`, 4000);
   if (!lr.ok) throw new Error();
   const lrc = (await lr.json())?.lrc?.lyric;
-  if (!lrc || lrc.includes('纯音乐') || lrc.trim().length<10) throw new Error();
+  if (!lrc || lrc.includes('') || lrc.trim().length<10) throw new Error();
   return { synced:lrc, source:'NetEase' };
 }
 
@@ -1010,7 +1033,7 @@ function syncOverlayLyrics() {
 
 function seekToLyric(time) { audio.currentTime=time; if (!isPlaying) audio.play(); }
 
-/* ─── Lyrics Overlay ─────────────────────────────────*/
+/*  Lyrics Overlay */
 function toggleLyricsOverlay() {
   lyricsOverlayOpen = !lyricsOverlayOpen;
   const overlay = document.getElementById('lyricsOverlay');
@@ -1022,7 +1045,7 @@ function closeLyricsOverlay(e) {
   if (e.target === document.getElementById('lyricsOverlay')) toggleLyricsOverlay();
 }
 
-/* ─── Filter / Search ────────────────────────────────*/
+/*  Filter / Search */
 function filterTracks(q) {
   const ql = q.toLowerCase();
   filteredTracks = ql ? tracks.filter(t =>
@@ -1031,7 +1054,7 @@ function filterTracks(q) {
   renderTrackList();
 }
 
-/* ─── View switching ─────────────────────────────────*/
+/*  View switching */
 function setView(name, btn) {
   currentView = name;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1048,7 +1071,7 @@ function setView(name, btn) {
   }
 }
 
-/* ─── Settings ───────────────────────────────────────*/
+/*  Settings */
 function toggleSettings() { document.getElementById('settingsOverlay').classList.toggle('open'); }
 function closeSettings(e) { if (e.target===document.getElementById('settingsOverlay')) toggleSettings(); }
 
@@ -1057,7 +1080,7 @@ function setAccent(btn) {
   saveConfig();
 }
 
-/* ─── Lyrics Panel ───────────────────────────────────*/
+/*  Lyrics Panel */
 function toggleLyricsPanel() {
   lyricsVisible = !lyricsVisible;
   document.getElementById('lyricsPanel').classList.toggle('hidden', !lyricsVisible);
@@ -1065,12 +1088,55 @@ function toggleLyricsPanel() {
   saveConfig();
 }
 
-/* ─── Window Controls ────────────────────────────────*/
-async function handleClose()    { if (window.__TAURI__) await TauriAPI.window.appWindow.close(); }
+/*  Window Controls */
+async function handleClose() {
+  if (window.__TAURI__) {
+    discordClear();
+    await TauriAPI.window.appWindow.close();
+  }
+}
 async function handleMinimize() { if (window.__TAURI__) await TauriAPI.window.appWindow.minimize(); }
 async function handleMaximize() { if (window.__TAURI__) await TauriAPI.window.appWindow.toggleMaximize(); }
 
-/* ─── Keyboard Shortcuts ─────────────────────────────*/
+/* ─── Discord Rich Presence ──────────────────────────*/
+let discordEnabled = true;
+
+function discordUpdate(track, playing) {
+  if (!window.__TAURI__ || !discordEnabled) return;
+  TauriAPI.tauri.invoke('rpc_update', {
+    track:    track.name    || '',
+    artist:   track.artist  || '',
+    album:    track.album   || '',
+    playing,
+    position: audio.currentTime || 0,
+    duration: track.duration    || 0,
+  }).catch(() => {});
+}
+
+function discordClear() {
+  if (!window.__TAURI__) return;
+  TauriAPI.tauri.invoke('rpc_clear').catch(() => {});
+}
+
+/*  Load full tags when track plays */
+async function loadMetaOnPlay(track) {
+  if (artCache.has(track.id)) return;
+  if (!window.jsmediatags) return;
+  try {
+    const res = await fetch(track.url, { headers: { Range: 'bytes=0-524287' } });
+    if (res.ok || res.status === 206) {
+      const buf = await res.arrayBuffer();
+      const tag = await readTagsFromBlob(new Blob([buf]));
+      applyTags(track, tag);
+      refreshTrackRow(track);
+      refreshQueueItem(track.id);
+      updatePlayerUI();
+      updateAmbient(track.id);
+    }
+  } catch {}
+}
+
+/*  Keyboard Shortcuts */
 document.addEventListener('keydown', e => {
   if (e.target.tagName==='INPUT' || e.target.tagName==='SELECT') return;
   switch(e.code) {
@@ -1091,7 +1157,7 @@ document.addEventListener('keydown', e => {
 // Also block F5 via beforeunload for older WebViews
 window.addEventListener('beforeunload', e => { if (isPlaying) e.preventDefault(); });
 
-/* ─── Last.fm ────────────────────────────────────────*/
+/*  Last.fm */
 function md5(str) {
   function safeAdd(x,y){const l=(x&0xffff)+(y&0xffff);return(((x>>16)+(y>>16)+(l>>16))<<16)|(l&0xffff);}
   function rol(n,c){return(n<<c)|(n>>>(32-c));}
@@ -1121,7 +1187,7 @@ async function lfmAuthenticate(username, password) {
   if (!lfm.apiKey||!lfm.apiSecret) { showLfmStatus('Enter API Key and Secret first.','error'); return; }
   showLfmStatus('Authenticating…','pending');
   const res = await lfmCall({method:'auth.getMobileSession',username,password});
-  if (res?.session) { lfm.sessionKey=res.session.key; lfm.username=res.session.name; lfm.enabled=true; saveLfmState(); updateLfmUI(); showLfmStatus(`Connected as ${lfm.username} ✓`,'ok'); }
+  if (res?.session) { lfm.sessionKey=res.session.key; lfm.username=res.session.name; lfm.enabled=true; saveLfmState(); updateLfmUI(); showLfmStatus(`Connected as ${lfm.username} `,'ok'); }
   else showLfmStatus(res?.error?`Error ${res.error}: ${res.message}`:'Auth failed.','error');
 }
 
@@ -1177,7 +1243,7 @@ function lfmLogin() {
   lfmAuthenticate(u,p);
 }
 
-/* ─── Utils ──────────────────────────────────────────*/
+/*  Utils */
 function formatTime(s) {
   if (!s||isNaN(s)) return '0:00';
   return `${Math.floor(s/60)}:${Math.floor(s%60).toString().padStart(2,'0')}`;
@@ -1189,7 +1255,7 @@ updateVolumeUI();
 updateLfmUI();
 loadConfig();
 
-/* ─── Context Menu ───────────────────────────────────*/
+/*  Context Menu */
 let ctxTrackId = null;
 
 function showContextMenu(e, trackId) {
@@ -1296,7 +1362,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') hideContextMenu(); });
 
-/* ─── Background Effects ─────────────────────────────*/
+/*  Background Effects */
 let bgEffect = 'none';
 let bgAnimId = null;
 const bgCanvas = document.getElementById('bgCanvas');
@@ -1426,7 +1492,7 @@ function startBgEffect(name) {
   else if (name === 'matrix') {
     const cols = Math.floor(W()/16);
     const drops = Array(cols).fill(0).map(() => Math.random()*H()/16 | 0);
-    const chars = 'アイウエオカキクケコサシスセソ01アロラ'.split('');
+    const chars = '01'.split('');
     const draw = () => {
       bgCtx.fillStyle = 'rgba(0,0,0,0.05)';
       bgCtx.fillRect(0,0,W(),H());
@@ -1444,7 +1510,7 @@ function startBgEffect(name) {
   }
 }
 
-/* ─── Sleep Timer ────────────────────────────────────*/
+/*  Sleep Timer */
 let sleepTimerId = null;
 let sleepTimerEnd = 0;
 let sleepTimerTickId = null;
@@ -1475,12 +1541,12 @@ function setSleepTimer(minutes) {
     const left = Math.max(0, sleepTimerEnd - Date.now());
     const m = Math.floor(left / 60000);
     const s = Math.floor((left % 60000) / 1000);
-    if (badge) badge.textContent = `💤 ${m}:${s.toString().padStart(2,'0')}`;
+    if (badge) badge.textContent = ` ${m}:${s.toString().padStart(2,'0')}`;
   }, 1000);
   saveConfig();
 }
 
-/* ─── Playback Speed ─────────────────────────────────*/
+/*  Playback Speed */
 let playbackSpeed = 1.0;
 
 function changeSpeed(delta) {
@@ -1492,7 +1558,7 @@ function changeSpeed(delta) {
   saveConfig();
 }
 
-/* ─── Liked Songs View ───────────────────────────────*/
+/*  Liked Songs View */
 function renderLikedSongs() {
   const list = document.getElementById('likedTrackList');
   if (!list) return;
@@ -1504,7 +1570,7 @@ function renderLikedSongs() {
   list.innerHTML = likedTracks.map((t, i) => {
     const art = getArt(t.id);
     return `<div class="track-row${currentIndex===t.id?' active':''}" data-id="${t.id}" onclick="playTrack(${t.id})" style="animation-delay:${i*0.02}s">
-      <div class="track-num">${currentIndex===t.id&&isPlaying?'▶':i+1}</div>
+      <div class="track-num">${currentIndex===t.id&&isPlaying?'':i+1}</div>
       <div class="track-info">
         <div class="track-thumb">${art?`<img src="${art}" alt="" loading="lazy">`:musicSVG(14)}</div>
         <div class="track-titles"><div class="track-title">${esc(t.name)}</div></div>
@@ -1516,7 +1582,7 @@ function renderLikedSongs() {
   }).join('');
 }
 
-/* ─── Stats View ─────────────────────────────────────*/
+/*  Stats View */
 function renderStats() {
   const grid = document.getElementById('statsGrid');
   if (!grid) return;
@@ -1549,7 +1615,7 @@ function renderStats() {
   `).join('');
 }
 
-/* ─── Context Menu ───────────────────────────────────*/
+/*  Context Menu */
 function showContextMenu(e, trackId) {
   e.preventDefault();
   const menu = document.getElementById('contextMenu');
@@ -1611,7 +1677,7 @@ function toggleLikeById(id) {
   if (currentView === 'liked') renderLikedSongs();
 }
 
-/* ─── Patch setView to handle new views ─────────────*/
+/*  Patch setView to handle new views */
 const _origSetView = setView;
 // Override setView to handle liked + stats
 window.setView = function(name, btn) {
@@ -1628,7 +1694,7 @@ window.setView = function(name, btn) {
   if (name === 'stats') renderStats();
 };
 
-/* ─── Patch renderTrackList rows to have context menu */
+/*  Patch renderTrackList rows to have context menu */
 const _origRenderTrackList = renderTrackList;
 window.renderTrackList = function(list, containerId, showPlaytime) {
   _origRenderTrackList(list, containerId, showPlaytime);
@@ -1639,7 +1705,7 @@ window.renderTrackList = function(list, containerId, showPlaytime) {
   });
 };
 
-/* ─── Patch saveConfig/loadConfig for new settings ──*/
+/*  Patch saveConfig/loadConfig for new settings */
 const _origSaveConfig = saveConfig;
 window.saveConfig = async function() {
   config.bgEffect = bgEffect;
